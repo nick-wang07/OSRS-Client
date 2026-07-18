@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="OSRS Client/OSRS Client.csproj" />
+  <Project Path="Client/Client.csproj" />
+  <Project Path="Core.Tests/Core.Tests.csproj" Id="aa0c000e-1f4b-4e6e-81d8-a445fa9fb444" />
+  <Project Path="Core/Core.csproj" />
+  <Project Path="Scripts/Scripts.csproj" />
 </Solution>
