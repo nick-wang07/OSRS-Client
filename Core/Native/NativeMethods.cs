@@ -1,39 +1,66 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 
 namespace Core.Native;
 
-public static partial class NativeMethods
+/// <summary>
+/// Raw P/Invoke surface. Internal by design: callers go through <see cref="INativeApi"/>,
+/// which exposes these in managed terms and can be substituted in tests.
+/// </summary>
+internal static unsafe partial class NativeMethods
 {
     public const uint INPUT_MOUSE = 0;
     public const uint INPUT_KEYBOARD = 1;
+
     public const uint MOUSEEVENTF_MOVE = 0x0001;
     public const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     public const uint MOUSEEVENTF_LEFTUP = 0x0004;
-    public const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
-    public const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
     public const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
     public const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+    public const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+    public const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
     public const uint MOUSEEVENTF_WHEEL = 0x0800;
+    public const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
+    public const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
+
     public const uint KEYEVENTF_KEYDOWN = 0x0000;
     public const uint KEYEVENTF_KEYUP = 0x0002;
-    public const uint KEYEVENTF_SCANCODE = 0x0008;
-    public const int SM_CXSCREEN = 0; // Primary screen width
-    public const int SM_CYSCREEN = 1; // Primary screen height
-    public const int SM_XVIRTUALSCREEN = 76;  // Left side of virtual screen
-    public const int SM_YVIRTUALSCREEN = 77;  // Top side of virtual screen
-    public const int SM_CXVIRTUALSCREEN = 78; // Width of virtual screen
-    public const int SM_CYVIRTUALSCREEN = 79; // Height of virtual screen
-    public const int WHEEL_DELTA = 120; // Standard scroll increment
-    public const ushort VK_SHIFT = 0x10;
-    public const ushort VK_SPACE = 0x20;
-    public const ushort VK_F1 = 0x70;
-    public const ushort VK_F2 = 0x71;
-    public const ushort VK_F3 = 0x72;
-    public const ushort VK_F4 = 0x73;
-    public const ushort VK_F5 = 0x74;
+    public const uint KEYEVENTF_UNICODE = 0x0004;
+
+    public const int SM_XVIRTUALSCREEN = 76;
+    public const int SM_YVIRTUALSCREEN = 77;
+    public const int SM_CXVIRTUALSCREEN = 78;
+    public const int SM_CYVIRTUALSCREEN = 79;
+
+    /// <summary>Absolute mouse coordinates are expressed on a 0..65535 grid ("mickeys").</summary>
+    public const int AbsoluteCoordinateRange = 65535;
+
+    public const int WHEEL_DELTA = 120;
+
     public const int SW_SHOW = 5;
     public const int SW_RESTORE = 9;
+
     public const uint SRCCOPY = 0x00CC0020;
+
+    public const uint BI_RGB = 0;
+    public const uint DIB_RGB_COLORS = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BitmapInfoHeader
+    {
+        public uint Size;
+        public int Width;
+
+        /// <summary>Negative requests a top-down DIB; a positive value yields bottom-up rows.</summary>
+        public int Height;
+        public ushort Planes;
+        public ushort BitCount;
+        public uint Compression;
+        public uint SizeImage;
+        public int XPelsPerMeter;
+        public int YPelsPerMeter;
+        public uint ClrUsed;
+        public uint ClrImportant;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Rect
@@ -86,8 +113,10 @@ public static partial class NativeMethods
         public ushort ParamH;
     }
 
+    // Pointer rather than Input[]: the caller stack-allocates, so driving the mouse
+    // does not allocate an array per event.
     [LibraryImport("user32.dll", SetLastError = true)]
-    public static partial uint SendInput(uint nInputs, [In] Input[] pInputs, int cbSize);
+    public static partial uint SendInput(uint nInputs, Input* pInputs, int cbSize);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -96,10 +125,6 @@ public static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ClientToScreen(IntPtr hWnd, ref Point lpPoint);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool ScreenToClient(IntPtr hWnd, ref Point lpPoint);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -120,7 +145,18 @@ public static partial class NativeMethods
     public static partial IntPtr GetForegroundWindow();
 
     [LibraryImport("user32.dll")]
-    public static partial IntPtr GetWindowDC(IntPtr hWnd);
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsWindow(IntPtr hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsIconic(IntPtr hWnd);
+
+    [LibraryImport("user32.dll")]
+    public static partial short GetAsyncKeyState(int vKey);
+
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr GetDC(IntPtr hWnd);
 
     [LibraryImport("user32.dll")]
     public static partial int ReleaseDC(IntPtr hWnd, IntPtr hDC);
@@ -144,8 +180,12 @@ public static partial class NativeMethods
 
     [LibraryImport("gdi32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool BitBlt(IntPtr hObject, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hObjSource, int nXSrc, int nYSrc, uint dwRop);
+    public static partial bool BitBlt(
+        IntPtr hObject, int nXDest, int nYDest, int nWidth, int nHeight,
+        IntPtr hObjSource, int nXSrc, int nYSrc, uint dwRop);
 
-    [LibraryImport("user32.dll")]
-    public static partial IntPtr GetDC(IntPtr hWnd);
+    [LibraryImport("gdi32.dll")]
+    public static partial int GetDIBits(
+        IntPtr hdc, IntPtr hbm, uint start, uint cLines,
+        byte* lpvBits, BitmapInfoHeader* lpbmi, uint usage);
 }

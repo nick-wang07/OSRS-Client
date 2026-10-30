@@ -1,0 +1,34 @@
+{
+  "stryker-config": {
+    "project": "Core.csproj",
+    "test-projects": [
+      "Core.Tests/Core.Tests.csproj"
+    ],
+    "reporters": [
+      "html",
+      "progress"
+    ],
+    "thresholds": {
+      "high": 90,
+      "low": 80,
+      "break": 80
+    },
+    "mutate": [
+      "!**/Native/NativeMethods.cs",
+      "!**/Native/Win32NativeApi.cs",
+      "!**/Vision/GdiScreenCapture.cs",
+      "!**/Windows/ProcessWindowFinder.cs"
+    ],
+    "ignore-methods": [
+      "Info",
+      "Warn",
+      "Error",
+      "ArgumentNullException.ThrowIfNull",
+      "ArgumentException.ThrowIfNullOrWhiteSpace",
+      "ArgumentOutOfRangeException.ThrowIfNegative",
+      "ArgumentOutOfRangeException.ThrowIfNegativeOrZero",
+      "ObjectDisposedException.ThrowIf"
+    ],
+    "concurrency": 4
+  }
+}

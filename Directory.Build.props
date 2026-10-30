@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Settings shared by every project. Individual .csproj files override only where they differ. -->
+  <PropertyGroup>
+    <!-- net10.0 already defaults to C# 14; pinned so a future SDK cannot silently move it. -->
+    <LangVersion>14.0</LangVersion>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Without this the IDE* style rules in .editorconfig are Visual Studio squiggles only
+         and never reach `dotnet build`. Turning it on is what makes the severities real. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+</Project>
